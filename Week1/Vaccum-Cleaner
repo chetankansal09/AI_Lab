@@ -1,0 +1,64 @@
+class VacuumEnvironment:
+    """Represents the environment tracking rooms and their dirt status."""
+    def __init__(self, initial_states=None):
+        if initial_states is None:
+            self.rooms = {'A': 1, 'B': 1} 
+        else:
+            self.rooms = initial_states
+            
+    def is_dirty(self, location):
+        return self.rooms[location] == 1
+
+    def clean_room(self, location):
+        self.rooms[location] = 0
+
+    def get_all_rooms(self):
+        return self.rooms
+
+
+class GoalBasedVacuumAgent:
+    """A Goal-Based Agent that formulates actions to achieve its goal state."""
+    def __init__(self, initial_location='A'):
+        self.current_location = initial_location
+        self.goal_state = 0 
+        self.path_cost = 0
+
+    def goal_test(self, environment):
+        """Checks if the environment has reached the goal state."""
+        return all(status == self.goal_state for status in environment.get_all_rooms().values())
+
+    def act(self, environment):
+        """Perceives the environment and chooses actions until the goal is met."""
+        print(f"--- Starting cleaning cycle at Location {self.current_location} ---")
+        
+        while not self.goal_test(environment):
+            current_loc = self.current_location
+            
+            if environment.is_dirty(current_loc):
+                print(f"[Percept]: Location {current_loc} is DIRTY.")
+                environment.clean_room(current_loc)
+                self.path_cost += 1
+                print(f"[Action]: SUCK -> Location {current_loc} is now CLEAN. (Cost: {self.path_cost})")
+            
+            if self.goal_test(environment):
+                break
+
+            if current_loc == 'A':
+                self.current_location = 'B'
+                self.path_cost += 1
+                print(f"[Action]: MOVE RIGHT -> Moved to Location B. (Cost: {self.path_cost})")
+            elif current_loc == 'B':
+                self.current_location = 'A'
+                self.path_cost += 1
+                print(f"[Action]: MOVE LEFT -> Moved to Location A. (Cost: {self.path_cost})")
+
+        print(f"\n[Goal Achieved!]: All rooms are clean. Total Path Cost: {self.path_cost}")
+        player_name = input("Please enter your name: ").strip()
+        print(f"\nThank you for playing, {player_name}!")
+
+if __name__ == "__main__":
+    env = VacuumEnvironment({'A': 1, 'B': 1})
+    
+    agent = GoalBasedVacuumAgent(initial_location='A')
+    
+    agent.act(env)
