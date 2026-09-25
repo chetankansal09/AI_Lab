@@ -1,0 +1,188 @@
+import math
+
+class TicTacToeAI:
+    def __init__(self):
+        self.board = [[' ' for _ in range(3)] for _ in range(3)]
+        self.ai_player = 'O'
+        self.human_player = 'X'
+        self.total_path_cost = 0
+
+    def display_board(self):
+        for i, row in enumerate(self.board):
+            print(" | ".join(row))
+            if i < 2:
+                print("-" * 9)
+        print()
+
+    def is_moves_left(self):
+        for row in self.board:
+            if ' ' in row:
+                return True
+        return False
+
+    def evaluate_board(self):
+        # Rows check
+        for row in range(3):
+            if self.board[row][0] == self.board[row][1] == self.board[row][2] and self.board[row][0] != ' ':
+                return 10 if self.board[row][0] == self.ai_player else -10
+        # Columns check
+        for col in range(3):
+            if self.board[0][col] == self.board[1][col] == self.board[2][col] and self.board[0][col] != ' ':
+                return 10 if self.board[0][col] == self.ai_player else -10
+        # Diagonals check
+        if self.board[0][0] == self.board[1][1] == self.board[2][2] and self.board[0][0] != ' ':
+            return 10 if self.board[0][0] == self.ai_player else -10
+        if self.board[0][2] == self.board[1][1] == self.board[2][0] and self.board[0][2] != ' ':
+            return 10 if self.board[0][2] == self.ai_player else -10
+            
+        return 0
+
+    def minimax(self, depth, is_max):
+        score = self.evaluate_board()
+        if score == 10:
+            return score - depth
+        if score == -10:
+            return score + depth
+        if not self.is_moves_left():
+            return 0
+
+        if is_max:
+            best = -math.inf
+            for i in range(3):
+                for j in range(3):
+                    if self.board[i][j] == ' ':
+                        self.board[i][j] = self.ai_player
+                        best = max(best, self.minimax(depth + 1, False))
+                        self.board[i][j] = ' '
+            return best
+        else:
+            best = math.inf
+            for i in range(3):
+                for j in range(3):
+                    if self.board[i][j] == ' ':
+                        self.board[i][j] = self.human_player
+                        best = min(best, self.minimax(depth + 1, True))
+                        self.board[i][j] = ' '
+            return best
+
+    def find_best_move(self):
+        best_val = -math.inf
+        best_move = (-1, -1)
+        for i in range(3):
+            for j in range(3):
+                if self.board[i][j] == ' ':
+                    self.board[i][j] = self.ai_player
+                    move_val = self.minimax(0, False)
+                    self.board[i][j] = ' '
+                    if move_val > best_val:
+                        best_move = (i, j)
+                        best_val = move_val
+        return best_move
+
+    def setup_custom_board(self):
+        """Allows the user to manually set up initial positions, prompting to start after each move."""
+        print("\n--- Custom Board Setup Mode ---")
+        self.display_board()
+
+        while self.is_moves_left():
+            user_input = input("Enter token and position (e.g., 'X 0 1' or 'O 2 2'): ").strip()
+            
+            try:
+                parts = user_input.split()
+                if len(parts) != 3:
+                    print("Invalid format! Use: [X/O] [row] [col] (e.g., X 0 1)")
+                    continue
+                    
+                token = parts[0].upper()
+                row, col = int(parts[1]), int(parts[2])
+                
+                if token not in ['X', 'O']:
+                    print("Invalid token! Must be 'X' or 'O'.")
+                    continue
+                if not (0 <= row <= 2 and 0 <= col <= 2):
+                    print("Out of bounds! Rows and columns must be 0, 1, or 2.")
+                    continue
+                if self.board[row][col] != ' ':
+                    print("Cell already occupied! Choose another spot.")
+                    continue
+                    
+                # Place the token
+                self.board[row][col] = token
+                self.total_path_cost += 1
+                self.display_board()
+                
+                # Check if someone already won with this configuration
+                if self.evaluate_board() != 0:
+                    print("A player has already won with this setup! Ending setup.")
+                    break
+                
+                # If there are no more squares left, break out automatically
+                if not self.is_moves_left():
+                    print("The board is full! Starting game validation...")
+                    break
+
+                # Prompt the user to either continue configuration or start the engine match
+                action = input("Do you want to continue setting up? (Type 'y' to continue, 'n' to start playing): ").strip().lower()
+                if action in ['n', 'no']:
+                    print("Exiting setup mode. Let the game begin!")
+                    break
+                    
+            except ValueError:
+                print("Invalid input! Ensure coordinates are numbers.")
+
+    def play_game(self):
+        print("\n--- Game Start: AI is 'O' and User is 'X' ---")
+        self.display_board()
+        x_count = sum(row.count('X') for row in self.board)
+        o_count = sum(row.count('O') for row in self.board)
+        
+        # Human player ('X') starts if X moves are less than or equal to O moves
+        is_human_turn = (x_count <= o_count)
+
+        while self.is_moves_left() and self.evaluate_board() == 0:
+            if is_human_turn:
+                try:
+                    row, col = map(int, input("Enter row and col (0-2) separated by space: ").split())
+                    if self.board[row][col] != ' ':
+                        print("Invalid move! Cell occupied. Try again.")
+                        continue
+                    self.board[row][col] = self.human_player
+                    self.total_path_cost += 1
+                except (ValueError, IndexError):
+                    print("Invalid input! Provide numeric coordinates between 0 and 2.")
+                    continue
+                self.display_board()
+                if not self.is_moves_left() or self.evaluate_board() != 0:
+                    break
+                is_human_turn = False
+            else:
+                print("AI is calculating the path of lowest cost...")
+                ai_row, ai_col = self.find_best_move()
+                self.board[ai_row][ai_col] = self.ai_player
+                self.total_path_cost += 1
+                print(f"AI plays at: {ai_row} {ai_col}")
+                self.display_board()
+                is_human_turn = True
+
+        final_score = self.evaluate_board()
+        if final_score == 10:
+            result = "AI wins!"
+        elif final_score == -10:
+            result = "You win!"
+        else:
+            result = "It's a draw!"
+
+        print("\n--- Game Over ---")
+        print(result)
+        print(f"Total game path cost (total moves): {self.total_path_cost}")
+        player_name = input("Please enter your name: ").strip()
+        print(f"\nThank you for playing, {player_name}!")
+
+if __name__ == "__main__":
+    game = TicTacToeAI()
+    
+    choice = input("Do you want to manually set up initial board positions? (yes/no): ").strip().lower()
+    if choice in ['yes', 'y']:
+        game.setup_custom_board()
+        
+    game.play_game()
