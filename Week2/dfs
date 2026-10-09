@@ -1,0 +1,90 @@
+print("NAME: CHETAN KANSAL")
+print("USN: 1WA24CS094")
+print("=" * 30)
+
+class PuzzleNode:
+    def __init__(self, state, parent=None, move=None):
+        self.state = state
+        self.parent = parent
+        self.move = move
+
+def get_neighbors(state):
+    zero_idx = state.index(0)
+    row, col = divmod(zero_idx, 3)
+    neighbors = []
+    
+    directions = [
+        (-1, 0, 'UP'),
+        (1, 0, 'DOWN'),
+        (0, -1, 'LEFT'),
+        (0, 1, 'RIGHT')
+    ]
+    
+    for dr, dc, move_name in directions:
+        new_row, new_col = row + dr, col + dc
+        if 0 <= new_row < 3 and 0 <= new_col < 3:
+            new_zero_idx = new_row * 3 + new_col
+            state_list = list(state)
+            state_list[zero_idx], state_list[new_zero_idx] = state_list[new_zero_idx], state_list[zero_idx]
+            neighbors.append((tuple(state_list), move_name))
+            
+    return neighbors
+
+def dfs_8_puzzle(initial_state, goal_state):
+    stack = [PuzzleNode(initial_state)]
+    visited = set()
+    nodes_explored = 0
+    
+    while stack:
+        current_node = stack.pop()
+        nodes_explored += 1
+        
+        if current_node.state == goal_state:
+            path_nodes = []
+            curr = current_node
+            while curr is not None:
+                path_nodes.append(curr)
+                curr = curr.parent
+            return path_nodes[::-1], nodes_explored
+        
+        if current_node.state not in visited:
+            visited.add(current_node.state)
+            
+            for next_state, move in get_neighbors(current_node.state):
+                if next_state not in visited:
+                    stack.append(PuzzleNode(next_state, parent=current_node, move=move))
+                    
+    return None, nodes_explored
+
+def print_board(state):
+    for i in range(0, 9, 3):
+        row_vals = ['B' if x == 0 else str(x) for x in state[i:i+3]]
+        print(f"  {' '.join(row_vals)}")
+
+if __name__ == "__main__":
+    initial_board = (5, 4, 0, 
+                     6, 1, 8, 
+                     7, 3, 2)
+    
+    target_board = (0, 1, 2, 
+                    3, 4, 5, 
+                    6, 7, 8)
+    
+    print("Initial Board:")
+    print_board(initial_board)
+    print("=" * 30)
+    
+    print("Running DFS (this may take a moment due to deep exploration)...")
+    path_nodes, total_nodes = dfs_8_puzzle(initial_board, target_board)
+    
+    if path_nodes:
+        moves = [node.move for node in path_nodes[1:]]
+        print(f"\nSolution Found!")
+    
+        
+        print(f"\nMove Sequence:")
+        print(moves)
+        print("\nFinal State Board:")
+        print_board(path_nodes[-1].state)
+    else:
+        print("No solution found.")
